@@ -1,27 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: '/',  
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    }
-  },
+  base: mode === 'production' ? '/version1.32.21/' : '/',
   build: {
     outDir: 'dist',
-    sourcemap: false,
+    sourcemap: true,
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -33,9 +18,30 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-label']
+          ui: ['@radix-ui/react-alert-dialog', '@radix-ui/react-dialog']
         }
+      },
+      onwarn(warning, warn) {
+        if (warning.code === 'EVAL' || 
+            warning.code === 'SOURCEMAP_ERROR' || 
+            warning.message.includes('/*#__PURE__*/')) {
+          return;
+        }
+        warn(warning);
       }
+    }
+  },
+  optimizeDeps: {
+    exclude: ['@imgly/background-removal']
+  },
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  plugins: [react()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     }
   }
 }));
